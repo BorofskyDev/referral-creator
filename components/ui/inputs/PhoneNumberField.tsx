@@ -4,22 +4,20 @@ import React from 'react'
 interface PhoneNumberFieldProps {
   label: string
   name: string
-  value: string // store digits only in state, e.g., "5143450192"
-  onChange: (newValue: string) => void // pass back digits only
+  value: string
+  onChange: (newValue: string) => void
   required?: boolean
 }
 
-// Utility function: transform raw digits -> (xxx) xxx-xxxx
 function formatPhoneNumber(digits: string) {
-  const cleaned = digits.replace(/\D/g, '') // ensure only digits
+  const cleaned = digits.replace(/\D/g, '')
   const len = cleaned.length
 
-  if (len < 4) return cleaned // up to 3 digits: "514"
+  if (len < 4) return cleaned
   if (len < 7) {
-    // (514) 345
     return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`
   }
-  // (514) 345-0192
+
   return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(
     6,
     10
@@ -33,18 +31,12 @@ export default function PhoneNumberField({
   onChange,
   required = false,
 }: PhoneNumberFieldProps) {
-  // We'll store the digits in `value` but display the masked text in the <input>
-
-  // When the user types, we remove non-digits, store them,
-  // but set the input's visible value to the formatted version
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // e.g., user typed "(51" -> remove parentheses -> "51"
     const rawDigits = e.target.value.replace(/\D/g, '')
-    // Then we call onChange with just digits
+
     onChange(rawDigits)
   }
 
-  // The input's 'value' prop shows the masked phone number
   const displayValue = formatPhoneNumber(value)
 
   return (

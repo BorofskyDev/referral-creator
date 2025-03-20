@@ -6,13 +6,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore'
 import app from '@/lib/firebase' 
-
-interface ProspectData {
-  name: string
-  phone: string
-  email: string
-  notes: string
-}
+import { ProspectData } from '../types'
 
 export function useProspects() {
   const db = getFirestore(app)

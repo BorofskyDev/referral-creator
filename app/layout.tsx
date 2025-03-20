@@ -22,7 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={` ${openSans.variable} bg-slate-950 antialiased`}
+        className={` ${openSans.variable}  bg-slate-800 antialiased`}
       >
         {children}
       </body>

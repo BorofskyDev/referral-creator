@@ -3,32 +3,73 @@
 
 import React, { useState } from 'react'
 import { useProspects } from '@/lib/hooks/useProspect'
-// Import the new components
+import { ProspectData } from '@/lib/types'
+
 import InputField from '@/components/ui/inputs/InputField'
 import PhoneNumberField from '@/components/ui/inputs/PhoneNumberField'
-import NotesField from '../inputs/NotesField'
+import NotesField from '@/components/ui/inputs/NotesField'
+import ReferralTypeSelect from '@/components/ui/inputs/ReferralTypeSelect'
+import ContactMethodSelect from '@/components/ui/inputs/ContactMethodSelect'
+import EmailConfirmationField from '@/components/ui/inputs/EmailConfirmationField'
+import WeekdayAvailabilitySelect from '@/components/ui/inputs/WeekdayAvailabilitySelect'
+import PreferredTimesSelect from '@/components/ui/inputs/PreferredTimesSelect'
 
 export default function ReferralSubmissionForm() {
   const { addProspect } = useProspects()
 
-  // We'll store the "raw" phone digits in phone
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProspectData>({
     name: '',
-    phone: '', // only digits
+    phone: '',
     email: '',
     notes: '',
+    referralType: 'appointment', // default, or 'contact'
+    contactMethod: undefined,
+    emailConfirmation: '',
+    goodDays: [],
+    bestTimes: [],
   })
 
-  function handleChange(field: 'name' | 'email' | 'phone' | 'notes', value: string) {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+  function handleChange<K extends keyof ProspectData>(key: K, value: ProspectData[K]) {
+    setFormData((prev) => ({ ...prev, [key]: value }))
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+
+    // Basic validations:
+    if (formData.referralType === 'contact') {
+      if (formData.contactMethod === 'email') {
+        // ensure emails match
+        if (formData.email !== formData.emailConfirmation) {
+          alert("Emails don't match!")
+          return
+        }
+      }
+      if (formData.contactMethod === 'phone') {
+        // ensure bestTimes has at least one selection
+        if (!formData.bestTimes || formData.bestTimes.length === 0) {
+          alert('Please select at least one time to call.')
+          return
+        }
+      }
+    }
+
+    // Submit to Firestore
     try {
       await addProspect(formData)
       alert('Prospect submitted successfully!')
-      setFormData({ name: '', phone: '', email: '' , notes:''})
+      // Reset form
+      setFormData({
+        name: '',
+        phone: '',
+        email: '',
+        notes: '',
+        referralType: 'appointment',
+        contactMethod: undefined,
+        emailConfirmation: '',
+        goodDays: [],
+        bestTimes: [],
+      })
     } catch (error) {
       console.error('Error submitting prospect:', error)
       alert('There was an error submitting the prospect.')
@@ -38,13 +79,14 @@ export default function ReferralSubmissionForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className='p-10 flex flex-col items-center gap-8
+      className='max-w-3xl my-6 mx-auto p-10 flex flex-col items-center gap-8 bg-slate-950
                  border border-blue-500 rounded-2xl shadow-2xl'
     >
       <h2 className='text-xl font-bold text-sky-100'>
         Enter Contact Information
       </h2>
 
+      {/* Basic Info */}
       <InputField
         label='Name'
         name='name'
@@ -52,7 +94,6 @@ export default function ReferralSubmissionForm() {
         onChange={(e) => handleChange('name', e.target.value)}
         required
       />
-
       <PhoneNumberField
         label='Phone'
         name='phone'
@@ -60,7 +101,6 @@ export default function ReferralSubmissionForm() {
         onChange={(rawDigits) => handleChange('phone', rawDigits)}
         required
       />
-
       <InputField
         label='Email'
         name='email'
@@ -69,14 +109,51 @@ export default function ReferralSubmissionForm() {
         onChange={(e) => handleChange('email', e.target.value)}
         required
       />
-
       <NotesField
-      label='Notes'
-      name='notes'
-      value={formData.notes}
-      onChange={(e) => handleChange('notes', e.target.value)}
-      required
+        label='Notes'
+        name='notes'
+        value={formData.notes}
+        onChange={(e) => handleChange('notes', e.target.value)}
       />
+
+      {/* Appointment vs Contact */}
+      <ReferralTypeSelect
+        value={formData.referralType}
+        onChange={(val) => handleChange('referralType', val)}
+      />
+
+      {formData.referralType === 'contact' && (
+        <>
+          {/* Contact Method */}
+          <ContactMethodSelect
+            value={formData.contactMethod}
+            onChange={(method) => handleChange('contactMethod', method)}
+          />
+
+          {/* If Email: show email confirmation */}
+          {formData.contactMethod === 'email' && (
+            <EmailConfirmationField
+              email={formData.email}
+              confirmation={formData.emailConfirmation ?? ''}
+              onChange={(val) => handleChange('emailConfirmation', val)}
+            />
+          )}
+
+          {/* If Phone: show day/time availability */}
+          {formData.contactMethod === 'phone' && (
+            <>
+              <WeekdayAvailabilitySelect
+                goodDays={formData.goodDays ?? []}
+                onChange={(days) => handleChange('goodDays', days)}
+              />
+              <PreferredTimesSelect
+                bestTimes={formData.bestTimes ?? []}
+                onChange={(times) => handleChange('bestTimes', times)}
+              />
+            </>
+          )}
+        </>
+      )}
 
       <button
         type='submit'
